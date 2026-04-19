@@ -64,7 +64,7 @@ Running the best configuration on `MAC_derand_unlabelled-challenge.csv` (20,464 
 │   │   └── lecture-dataset/                     # 7 labelled CSVs for N selection
 │   ├── MAC_derand_challenge-dataset/
 │   │   └── challenge-dataset/                   # 6 labelled CSVs for validation
-│   └── MAC_derand_unlabelled-challenge.csv      # Bonus: unknown environment
+│   └── MAC_derand_unlabelled-challenge.csv      # unknown environment
 ├── LICENSE
 └── README.md
 ```
