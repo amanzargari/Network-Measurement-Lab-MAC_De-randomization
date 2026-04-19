@@ -19,7 +19,7 @@ Pipeline:
    - assign it to the first existing cluster whose center matches at least `N` features, or
    - open a new cluster with this burst as the center.
 7. **Hyperparameter sweep**: run the clusterer for `N = 1 … max_features` and pick the `N` that jointly maximizes V-Measure and minimizes |predicted − actual| device count.
-8. **Validation** on `Data/MAC_derand_challenge-dataset/challenge-dataset/` (6 unseen devices): for each test-set size `K ∈ {2, 3, 4, 5}` draw 5 random K-device subsets, for `K = 6` one subset. Report per-trial and average Homogeneity, Completeness, V-Measure, and Error. Plot averages vs K.
+8. **Validation** on `Data/MAC_derand_challenge-dataset/challenge-dataset/` (6 unseen devices): for each test-set size `K ∈ {2, 3, 4, 5}` draw 5 random K-device subsets, for `K = 6` one subset. `random.seed(42)` is fixed for reproducibility. Report per-trial and average Homogeneity, Completeness, V-Measure, and Error. Plot averages vs K.
 9. **Unlabelled estimation** on `Data/MAC_derand_unlabelled-challenge.csv` using the best `N`.
 
 ## Results
@@ -34,24 +34,25 @@ Pipeline:
 | **4** | **7**  | **0** | **0.73** | **0.99** | **0.84** |
 | 5 | 9  | 2 | 0.73 | 0.96 | 0.83 |
 | 6 | 16 | 9 | 1.00 | 0.88 | 0.94 |
+| 7 | 73 | 66 | 1.00 | 0.41 | 0.58 |
 
 `N = 4` is the sweet spot: the algorithm recovers exactly 7 clusters while keeping a strong V-Measure. Low `N` under-clusters (high completeness, poor purity); high `N` over-clusters (perfect purity, completeness collapses).
 
-### Validation on challenge devices (N = 4)
+### Validation on challenge devices (N = 4, seed = 42)
 
 | K | Homogeneity | Completeness | V-Measure | Error |
 |---:|---:|---:|---:|---:|
-| 2 | 0.80 | 0.81 | 0.80 | 0.0 |
-| 3 | 0.85 | 0.98 | 0.89 | 0.0 |
-| 4 | 0.98 | 1.00 | 0.99 | 0.0 |
-| 5 | 0.95 | 1.00 | 0.97 | 0.0 |
+| 2 | 1.00 | 1.00 | 1.00 | 0.0 |
+| 3 | 0.89 | 0.98 | 0.92 | 0.0 |
+| 4 | 0.93 | 0.99 | 0.96 | 0.0 |
+| 5 | 0.92 | 0.99 | 0.96 | 0.0 |
 | 6 | 0.93 | 0.99 | 0.96 | 0.0 |
 
-Error is 0 at every K — the correct device count is recovered in every trial. V-Measure is lowest at K=2 (single misclustered bursts dominate a small-K score) and stabilises around 0.96–0.99 for K ≥ 4, confirming the approach generalises to devices never seen during `N` selection.
+Error is 0 at every K — the correct device count is recovered in every single trial. V-Measure is perfect at K=2 across all 5 sampled pairs, dips to 0.92 at K=3 (driven by a single outlier trial: one triplet of devices with heavily overlapping IEs collapsed to V=0.61 while the other four trials achieved V=1.00), and stabilises around 0.96 for K ≥ 4. Completeness stays consistently higher than Homogeneity, meaning the residual errors come from the algorithm splitting one device across two clusters rather than merging two devices into one — the conservative failure mode, preferable for de-randomization.
 
 ### Unlabelled capture
 
-Running the best configuration on `MAC_derand_unlabelled-challenge.csv` (20,464 probes → 2,455 bursts after MAC + 2 s gap grouping) yields an estimate of **8 distinct devices** in the monitored environment. The cluster-size distribution is long-tailed — two dominant clusters account for most bursts (likely stationary devices) while several clusters contain only 1–2 bursts (likely transient passers-by).
+Running the best configuration on `MAC_derand_unlabelled-challenge.csv` (20,464 probes → 2,455 bursts after MAC + 2 s gap grouping) yields an estimate of **8 distinct devices** in the monitored environment. The cluster-size distribution is long-tailed — two dominant clusters (1260 and 1084 bursts) account for most traffic, likely stationary devices, while several clusters contain only 1–2 bursts, likely transient devices passing briefly through the sensor's range.
 
 ## Repository layout
 
@@ -70,8 +71,6 @@ Running the best configuration on `MAC_derand_unlabelled-challenge.csv` (20,464 
 
 ## Running it
 
-Requirements: Python ≥ 3.9, `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `tqdm`, `jupyter`.
-
 ```bash
 pip install pandas numpy scikit-learn matplotlib seaborn tqdm jupyter
 ```
@@ -84,4 +83,10 @@ Run cells top to bottom. The whole pipeline takes a few minutes on a laptop (the
 - **Tie-breaking.** When several clusters satisfy the `≥ N` matches rule, the first one found wins (as the assignment allows).
 - **Dropped IEs.** `SSID` is dropped because 91% of probes omit it (modern Android/iOS randomization actively hides it). `VHT/HE Capabilities` are dropped because they are essentially never populated in this capture.
 - **Label encoding is per-dataset.** Encoders are refit on each dataset, so numeric codes are not comparable across lecture / challenge / unlabelled — this is fine because the clustering is online and each run is self-contained.
-- **Reproducibility.** Set `random.seed(42)` before the K-loop in the validation cell to get the same K-device subsets on every run.
+- **Sensitivity to device combinations.** As the K=3 outlier trial shows, performance depends not only on *how many* devices are in the environment but *which* specific devices: two devices with near-identical IE signatures can collapse into one cluster even at the optimal N.
+- **Reproducibility.** `random.seed(42)` is fixed at the start of the notebook so the K-device subsets in the validation loop are identical across runs.
+
+## References
+
+- Slides: *MAC randomization / MAC de-randomization*, Network Measurement and Data Analysis Lab, Politecnico di Milano.
+- Homogeneity, Completeness, V-Measure: Rosenberg & Hirschberg, *EMNLP-CoNLL 2007*.
