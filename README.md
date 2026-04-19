@@ -85,8 +85,3 @@ Run cells top to bottom. The whole pipeline takes a few minutes on a laptop (the
 - **Label encoding is per-dataset.** Encoders are refit on each dataset, so numeric codes are not comparable across lecture / challenge / unlabelled — this is fine because the clustering is online and each run is self-contained.
 - **Sensitivity to device combinations.** As the K=3 outlier trial shows, performance depends not only on *how many* devices are in the environment but *which* specific devices: two devices with near-identical IE signatures can collapse into one cluster even at the optimal N.
 - **Reproducibility.** `random.seed(42)` is fixed at the start of the notebook so the K-device subsets in the validation loop are identical across runs.
-
-## References
-
-- Slides: *MAC randomization / MAC de-randomization*, Network Measurement and Data Analysis Lab, Politecnico di Milano.
-- Homogeneity, Completeness, V-Measure: Rosenberg & Hirschberg, *EMNLP-CoNLL 2007*.
